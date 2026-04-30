@@ -1,0 +1,16 @@
+tenant_id: Pay_Benefits_and_Leave
+domain: Pay_Benefits_and_Leave
+display_name: "Pay_Benefits_and_Leave Policy Assistant"
+
+retrieval:
+  top_k: 4
+  min_confidence_mode_for_direct_answer: MEDIUM
+
+policy:
+  max_clarification_rounds: 2
+  fallback_threshold_for_escalation: 2
+  escalation_message: "I may not have enough reliable policy context. Would you like me to create an HR handoff note?"
+
+intents_profile: "hr_v1"
+slots_profile: "hr_v1"
+prompts_profile: "default_v1"

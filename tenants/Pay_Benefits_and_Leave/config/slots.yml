@@ -1,0 +1,32 @@
+employee_group:
+  type: "categorical"
+  possible_values: ["excluded", "bargaining_unit", "schedule_a", "pea", "unknown"]
+  description: "Employee category used for many policy branches."
+
+employment_type:
+  type: "categorical"
+  possible_values: ["regular_full_time", "part_time", "auxiliary", "regular", "unknown"]
+  description: "Employment type used for increment and leave decisions."
+
+action_type:
+  type: "categorical"
+  possible_values:
+    ["new_appointment", "promotion", "demotion", "lateral_transfer", "temporary_appointment", "reclassification", "status_change", "unknown"]
+  description: "Personnel movement/action relevant to compensation logic."
+
+is_nurse:
+  type: "categorical"
+  possible_values: ["yes", "no", "unknown"]
+  description: "Whether nurse-specific increment rules should apply."
+
+leave_type:
+  type: "categorical"
+  possible_values:
+    ["lwop", "maternity", "adoption", "parental", "education", "union", "pre_retirement_paid_absence", "other", "unknown"]
+  description: "Leave category used in deferral and entitlement logic."
+
+athletic_event_type:
+  type: "categorical"
+  possible_values:
+    ["olympic_games", "commonwealth_games", "pan_american_games", "canada_games", "paralympic_games", "north_american_indigenous_games", "other", "unknown"]
+  description: "Designated event type for athletic leave checks."

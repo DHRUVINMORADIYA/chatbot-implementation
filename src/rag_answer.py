@@ -6,11 +6,12 @@ from dotenv import load_dotenv
 from groq import Groq
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from onboarding_helper import load_tenant_config, tenant_vector_store_path
 
 
-VECTOR_STORE_PATH = os.path.join(os.path.dirname(__file__), "..", "vector_store")
 TOP_K = 4
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DEFAULT_TENANT_ID = "Pay_Benefits_and_Leave"
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 SYSTEM_RULES = """You are a policy assistant.
@@ -24,10 +25,10 @@ Rules:
 """
 
 
-def load_vector_store() -> Chroma:
+def load_vector_store(vector_store_path: str) -> Chroma:
     embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     return Chroma(
-        persist_directory=VECTOR_STORE_PATH,
+        persist_directory=vector_store_path,
         embedding_function=embedding_model,
     )
 
@@ -104,9 +105,17 @@ def call_llm(prompt: str) -> Dict[str, Any]:
     return json.loads(raw_text)
 
 
-def answer_query(query: str, k: int = TOP_K) -> Dict[str, Any]:
-    vector_store = load_vector_store()
-    results = retrieve_chunks(vector_store, query, k=k)
+def answer_query(
+    query: str,
+    tenant_id: str = DEFAULT_TENANT_ID,
+    k: int | None = None,
+) -> Dict[str, Any]:
+    tenant_cfg = load_tenant_config(tenant_id)
+    vector_store_path = tenant_vector_store_path(tenant_id)
+    top_k = k if k is not None else int(tenant_cfg["retrieval"]["top_k"])
+
+    vector_store = load_vector_store(vector_store_path)
+    results = retrieve_chunks(vector_store, query, k=top_k)
     context_text, retrieved_citations = build_context(results)
     prompt = build_prompt(query, context_text)
 
@@ -125,6 +134,6 @@ def answer_query(query: str, k: int = TOP_K) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    user_query = "Can aliens work at your company?"
-    result = answer_query(user_query, k=4)
+    user_query = "Who is eligible for athletic leave?"
+    result = answer_query(user_query, tenant_id=DEFAULT_TENANT_ID)
     print(json.dumps(result, indent=2))

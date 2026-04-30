@@ -1,9 +1,12 @@
 import os
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from onboarding_helper import tenant_vector_store_path
+
+DEFAULT_TENANT_ID = "Pay_Benefits_and_Leave"
 
 # Path to persisted vector store
-VECTOR_STORE_PATH = os.path.join(os.path.dirname(__file__), "..", "vector_store")
+VECTOR_STORE_PATH = tenant_vector_store_path(DEFAULT_TENANT_ID)
 
 # Load embedding model (must be same model used in ingest.py)
 embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -17,7 +20,7 @@ vector_store = Chroma(
 print(f"Vector store loaded. Total chunks: {vector_store._collection.count()}")
 
 test_queries = [
-    "What is the GRIEVANCE MECHANISM?"
+    "Who is eligible for athletic leave?"
 ]
 
 for query in test_queries:

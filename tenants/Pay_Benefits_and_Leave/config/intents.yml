@@ -1,0 +1,29 @@
+compensation_rules:
+  description: "Questions on salary on appointment, promotions/demotions/transfers, increments, and probation-related pay progression."
+  required_slots: ["employment_type"]
+  optional_slots: ["employee_group", "action_type", "is_nurse"]
+
+leave_rules:
+  description: "Questions on leave without pay, increment deferrals, paid absence prior to retirement, and athletic leave."
+  required_slots: []
+  optional_slots: ["leave_type", "athletic_event_type", "employment_type"]
+
+benefits_eligibility:
+  description: "Questions on benefits coverage and benefit program accountability."
+  required_slots: []
+  optional_slots: ["employee_group", "employment_type"]
+
+compliance_and_repayments:
+  description: "Questions on overpayment recovery, severance repayment on re-employment, and honouraria restrictions."
+  required_slots: []
+  optional_slots: ["employee_group", "employment_type"]
+
+out_of_scope:
+  description: "Queries not covered by this policy or unrelated to pay, benefits, and leave."
+  required_slots: []
+  optional_slots: []
+
+greeting_or_smalltalk:
+  description: "Greetings, thanks, and non-policy smalltalk."
+  required_slots: []
+  optional_slots: []

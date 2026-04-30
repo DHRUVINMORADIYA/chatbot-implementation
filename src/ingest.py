@@ -3,10 +3,13 @@ from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from onboarding_helper import tenant_data_path, tenant_vector_store_path
+
+DEFAULT_TENANT_ID = "Pay_Benefits_and_Leave"
 
 # Paths
-DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data")
-VECTOR_STORE_PATH = os.path.join(os.path.dirname(__file__), "..", "vector_store")
+DATA_PATH = tenant_data_path(DEFAULT_TENANT_ID)
+VECTOR_STORE_PATH = tenant_vector_store_path(DEFAULT_TENANT_ID)
 
 # Load all PDFs from data/
 loader = PyPDFDirectoryLoader(DATA_PATH)
