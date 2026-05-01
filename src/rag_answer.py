@@ -26,16 +26,27 @@ Rules:
 
 
 def load_vector_store(vector_store_path: str) -> Chroma:
+    print(f"[VECTOR STORE] Loading from: {vector_store_path}")
     embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return Chroma(
+    store = Chroma(
         persist_directory=vector_store_path,
         embedding_function=embedding_model,
     )
+    print(f"[VECTOR STORE] Loaded. Total chunks: {store._collection.count()}")
+    return store
 
 
 def retrieve_chunks(vector_store: Chroma, query: str, k: int = TOP_K):
     # Returns: List[Tuple[Document, score]]
-    return vector_store.similarity_search_with_score(query, k=k)
+    print(f"[RETRIEVAL] Searching top {k} chunks for query: '{query[:80]}...'" if len(query) > 80 else f"[RETRIEVAL] Searching top {k} chunks for query: '{query}'")
+    results = vector_store.similarity_search_with_score(query, k=k)
+    for i, (doc, score) in enumerate(results, 1):
+        chunk_id = doc.metadata.get("chunk_id", "?")
+        page = doc.metadata.get("page", "?")
+        preview = doc.page_content.replace("\n", " ").strip()
+        print(f"[RETRIEVAL]   #{i} score={score:.4f} chunk={chunk_id} page={page}")
+        print(f"[RETRIEVAL]       content: {preview[:200]}{'...' if len(preview) > 200 else ''}")
+    return results
 
 
 def build_context(results) -> Tuple[str, List[Dict[str, Any]]]:
@@ -85,6 +96,7 @@ Output rules:
 """
 
 def call_llm(prompt: str) -> Dict[str, Any]:
+    print(f"[LLM] Calling Groq llama-3.3-70b-versatile (prompt length: {len(prompt)} chars)")
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise ValueError("Set GROQ_API_KEY in .env")
@@ -102,6 +114,7 @@ def call_llm(prompt: str) -> Dict[str, Any]:
     )
 
     raw_text = completion.choices[0].message.content.strip()
+    print(f"[LLM] Response received ({len(raw_text)} chars)")
     return json.loads(raw_text)
 
 
@@ -110,6 +123,7 @@ def answer_query(
     tenant_id: str = DEFAULT_TENANT_ID,
     k: int | None = None,
 ) -> Dict[str, Any]:
+    print(f"[ANSWER_QUERY] tenant={tenant_id} | k={k}")
     tenant_cfg = load_tenant_config(tenant_id)
     vector_store_path = tenant_vector_store_path(tenant_id)
     top_k = k if k is not None else int(tenant_cfg["retrieval"]["top_k"])
@@ -122,7 +136,7 @@ def answer_query(
     llm_out = call_llm(prompt)
 
     # Minimal safety normalization for required keys
-    return {
+    result = {
         "answer": llm_out.get(
             "answer",
             "I do not have enough information in the provided context.",
@@ -131,6 +145,8 @@ def answer_query(
         "confidence_mode": llm_out.get("confidence_mode", "LOW"),
         "retrieved_citations": retrieved_citations,  # useful for debugging
     }
+    print(f"[ANSWER_QUERY] confidence_mode={result['confidence_mode']} | citations={result['citations']}\")")
+    return result
 
 
 if __name__ == "__main__":

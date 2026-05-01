@@ -1,4 +1,6 @@
 import os
+from typing import Dict, Any
+
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
@@ -7,47 +9,47 @@ from onboarding_helper import tenant_data_path, tenant_vector_store_path
 
 DEFAULT_TENANT_ID = "Pay_Benefits_and_Leave"
 
-# Paths
-DATA_PATH = tenant_data_path(DEFAULT_TENANT_ID)
-VECTOR_STORE_PATH = tenant_vector_store_path(DEFAULT_TENANT_ID)
 
-# Load all PDFs from data/
-loader = PyPDFDirectoryLoader(DATA_PATH)
-documents = loader.load()
+def run_ingestion(tenant_id: str) -> Dict[str, Any]:
+    # Resolve tenant-specific paths from config.
+    data_path = tenant_data_path(tenant_id)
+    vector_store_path = tenant_vector_store_path(tenant_id)
 
-print(f"Documents loaded: {len(documents)}")
+    # Load all PDFs from the tenant's data folder.
+    loader = PyPDFDirectoryLoader(data_path)
+    documents = loader.load()
+    print(f"[{tenant_id}] Documents loaded: {len(documents)}")
 
-# Split documents into chunks
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=800,
-    chunk_overlap=120,
-)
+    # Split into overlapping chunks for better retrieval coverage.
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=120)
+    chunks = text_splitter.split_documents(documents)
+    print(f"[{tenant_id}] Chunks created: {len(chunks)}")
 
-chunks = text_splitter.split_documents(documents)
-print(f"Chunks created: {len(chunks)}")
+    # Attach consistent metadata for citation tracking.
+    for i, chunk in enumerate(chunks):
+        source = chunk.metadata.get("source", "unknown_source")
+        page = chunk.metadata.get("page", -1)
+        chunk.metadata["source"] = source
+        chunk.metadata["page"] = page
+        chunk.metadata["chunk_id"] = f"{os.path.basename(source)}:p{page}:c{i}"
 
-# for chunk in chunks:
-#     print("--->",chunk.page_content)
+    # Embed chunks and persist to tenant-specific vector store.
+    embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    Chroma.from_documents(
+        documents=chunks,
+        embedding=embedding_model,
+        persist_directory=vector_store_path,
+    )
+    print(f"[{tenant_id}] Vector store persisted to: {vector_store_path}")
 
-# Add consistent metadata per chunk
-for i, chunk in enumerate(chunks):
-    source = chunk.metadata.get("source", "unknown_source")
-    page = chunk.metadata.get("page", -1)
+    return {
+        "tenant_id": tenant_id,
+        "documents_loaded": len(documents),
+        "chunks_created": len(chunks),
+        "vector_store_path": vector_store_path,
+    }
 
-    chunk.metadata["source"] = source
-    chunk.metadata["page"] = page
-    chunk.metadata["chunk_id"] = f"{os.path.basename(source)}:p{page}:c{i}"
 
-# print("Sample chunk metadata:", chunks[0].metadata if chunks else "No chunks")
-
-# Create embedding model
-embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
-# Embed chunks and persist to vector store
-vector_store = Chroma.from_documents(
-    documents=chunks,
-    embedding=embedding_model,
-    persist_directory=VECTOR_STORE_PATH,
-)
-
-print(f"Vector store persisted to: {VECTOR_STORE_PATH}")
+if __name__ == "__main__":
+    result = run_ingestion(DEFAULT_TENANT_ID)
+    print(result)

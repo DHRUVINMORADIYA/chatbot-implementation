@@ -1,0 +1,12 @@
+general_inquiry:
+  description: General questions about the documents in this tenant.
+  optional_slots: []
+  required_slots: []
+greeting_or_smalltalk:
+  description: Greetings, thanks, and casual conversation.
+  optional_slots: []
+  required_slots: []
+out_of_scope:
+  description: Questions not covered by this tenant's documents.
+  optional_slots: []
+  required_slots: []

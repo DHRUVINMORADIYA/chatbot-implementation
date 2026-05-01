@@ -1,0 +1,14 @@
+display_name: Hiring and Deployment
+domain: Hiring and Deployment
+intents_profile: default_v1
+policy:
+  escalation_message: I may not have enough reliable context. Would you like me to
+    create a handoff note?
+  fallback_threshold_for_escalation: 2
+  max_clarification_rounds: 2
+prompts_profile: default_v1
+retrieval:
+  min_confidence_mode_for_direct_answer: MEDIUM
+  top_k: 4
+slots_profile: default_v1
+tenant_id: Hiring and Deployment

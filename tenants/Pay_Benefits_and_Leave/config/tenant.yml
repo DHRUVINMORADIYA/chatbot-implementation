@@ -10,6 +10,8 @@ policy:
   max_clarification_rounds: 2
   fallback_threshold_for_escalation: 2
   escalation_message: "I may not have enough reliable policy context. Would you like me to create an HR handoff note?"
+  smalltalk_response: "Hello! I'm the Pay, Benefits & Leave Policy Assistant. How can I help you today?"
+  out_of_scope_response: "I can only assist with pay, benefits, and leave policy questions. Please ask me something related to those topics."
 
 intents_profile: "hr_v1"
 slots_profile: "hr_v1"
