@@ -1,4 +1,5 @@
 import uuid
+import html as _html
 import requests
 import streamlit as st
 
@@ -149,62 +150,88 @@ with chat_tab:
             st.caption(f"Session `{st.session_state.session_id[:8]}...`")
             st.divider()
 
-            # Render existing chat history
-            for msg in st.session_state.messages:
-                with st.chat_message(msg["role"]):
-                    st.markdown(msg["content"])
+            def _bubble(role: str, text: str) -> None:
+                """Render a single chat bubble: user=right-aligned, bot=left-aligned."""
+                safe = _html.escape(text).replace("\n", "<br>")
+                if role == "user":
+                    st.markdown(
+                        f"""
+                        <div style="display:flex;justify-content:flex-end;margin:4px 0 8px 15%">
+                          <div style="background:#1f77b4;color:#ffffff;padding:10px 14px;
+                                      border-radius:16px 16px 3px 16px;font-size:.93rem;
+                                      line-height:1.55;word-wrap:break-word;">
+                            {safe}
+                          </div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f"""
+                        <div style="display:flex;justify-content:flex-start;margin:4px 15% 8px 0">
+                          <div style="background:#f0f2f6;color:#1a1a1a;padding:10px 14px;
+                                      border-radius:16px 16px 16px 3px;font-size:.93rem;
+                                      line-height:1.55;word-wrap:break-word;">
+                            {safe}
+                          </div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
 
-            # Chat input
+            # Scrollable history area
+            history_box = st.container(height=520, border=False)
+            with history_box:
+                for msg in st.session_state.messages:
+                    _bubble(msg["role"], msg["content"])
+
+            # Input anchored below history (st.chat_input is sticky at viewport bottom)
             user_input = st.chat_input("Ask a policy question...")
             if user_input:
                 st.session_state.messages.append({"role": "user", "content": user_input})
-                with st.chat_message("user"):
-                    st.markdown(user_input)
 
-                with st.chat_message("assistant"):
-                    with st.spinner("Thinking..."):
-                        try:
-                            resp = requests.post(
-                                f"{API_BASE}/chat",
-                                json={
-                                    "session_id": st.session_state.session_id,
-                                    "tenant_id": locked,
-                                    "message": user_input,
-                                    "user_role": "employee",
-                                },
-                                timeout=30,
-                            )
-                            result = resp.json().get("result", {})
-                            rtype = result.get("type", "")
+                with st.spinner("Thinking..."):
+                    try:
+                        resp = requests.post(
+                            f"{API_BASE}/chat",
+                            json={
+                                "session_id": st.session_state.session_id,
+                                "tenant_id": locked,
+                                "message": user_input,
+                                "user_role": "employee",
+                            },
+                            timeout=30,
+                        )
+                        result = resp.json().get("result", {})
+                        rtype = result.get("type", "")
 
-                            if rtype == "answer":
-                                bot_text = result["rag"].get("answer", "No answer returned.")
-                                citations = result["rag"].get("citations", [])
-                                if citations:
-                                    cit_str = ", ".join(
-                                        f"p{c.get('page', '?')}" for c in citations
-                                    )
-                                    bot_text += f"\n\n_Sources: {cit_str}_"
+                        if rtype == "answer":
+                            bot_text = result["rag"].get("answer", "No answer returned.")
+                            citations = result["rag"].get("citations", [])
+                            if citations:
+                                cit_str = ", ".join(
+                                    f"p{c.get('page', '?')}" for c in citations
+                                )
+                                bot_text += f"\n\nSources: {cit_str}"
 
-                            elif rtype in ("clarification", "out_of_scope", "smalltalk"):
-                                bot_text = result.get("message", "")
+                        elif rtype in ("clarification", "out_of_scope", "smalltalk"):
+                            bot_text = result.get("message", "")
 
-                            elif rtype == "escalation_offer":
-                                bot_text = result.get("message", "")
-                                if result.get("rag"):
-                                    bot_text += "\n\n" + result["rag"].get("answer", "")
+                        elif rtype == "escalation_offer":
+                            bot_text = result.get("message", "")
+                            if result.get("rag"):
+                                bot_text += "\n\n" + result["rag"].get("answer", "")
 
-                            else:
-                                bot_text = str(result)
+                        else:
+                            bot_text = str(result)
 
-                            st.markdown(bot_text)
-                            st.session_state.messages.append(
-                                {"role": "assistant", "content": bot_text}
-                            )
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": bot_text}
+                        )
 
-                        except Exception as e:
-                            err = f"API error: {e}"
-                            st.error(err)
-                            st.session_state.messages.append(
-                                {"role": "assistant", "content": err}
-                            )
+                    except Exception as e:
+                        err = f"API error: {e}"
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": err}
+                        )
+
+                st.rerun()
